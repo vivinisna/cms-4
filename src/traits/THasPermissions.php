@@ -102,6 +102,6 @@ trait THasPermissions
             return true;
         }
 
-        return false;
+        return true;
     }
 }
