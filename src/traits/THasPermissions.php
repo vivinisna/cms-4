@@ -7,12 +7,14 @@
  */
 namespace skeeks\cms\traits;
 use skeeks\cms\rbac\CmsManager;
+use yii\base\InvalidConfigException;
 use yii\base\Model;
 use yii\web\Application;
 
 /**
- * @property string $permissionName;
- * @property array  $permissionNames;
+ * @property callable|null       $accessCallback;
+ * @property string|null         $permissionName;
+ * @property array|null          $permissionNames;
  * @property bool $isAllow;
  *
  * Class THasPermissions
@@ -40,6 +42,35 @@ trait THasPermissions
     public function setPermissionNames(array $permissionNames = null)
     {
         $this->_permissionNames = $permissionNames;
+        return $this;
+    }
+
+    /**
+     * @var callable
+     */
+    protected $_accessCallback = null;
+
+    /**
+     * @return callable
+     */
+    public function getAccessCallback()
+    {
+        return $this->_accessCallback;
+    }
+
+    /**
+     * @param null|callable $accessCallback
+     *
+     * @return $this
+     */
+    public function setAccessCallback($accessCallback = null)
+    {
+        if ($accessCallback !== null && !is_callable($accessCallback))
+        {
+            throw new InvalidConfigException('accessCallback must be callable');
+        }
+
+        $this->_accessCallback = $accessCallback;
         return $this;
     }
 
@@ -98,8 +129,20 @@ trait THasPermissions
                     return false;
                 }
             }
+        }
 
-            return true;
+        return $this->_accessCallback();
+    }
+    
+    /**
+     * @return bool
+     */
+    protected function _accessCallback()
+    {
+        if ($this->accessCallback && is_callable($this->accessCallback))
+        {
+            $callback = $this->accessCallback;
+            return (bool) call_user_func($callback, $this);
         }
 
         return true;
